@@ -14,6 +14,10 @@ find_repo_root() {
   exit 1
 }
 
+# https://stackoverflow.com/a/246128
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+
+export STUFF_BASE_DIR="$SCRIPT_DIR"
 export STUFF_REPO_DIR="$(find_repo_root)"
 export STUFF_CONFIG_FILE="$STUFF_REPO_DIR/stuff.yaml"
 export STUFF_SOURCE_DIR="$(dirname "$STUFF_REPO_DIR")"
@@ -38,6 +42,16 @@ SUBCOMMAND="$2"
 TARGET="$3"
 
 case "$COMMAND" in
+  generate-typedefs)
+    pushd "$STUFF_REPO_DIR" >/dev/null
+    shift # remove "generate-typedefs" from $@
+    NAMESPACE="$(yq -r ".scope" "$STUFF_CONFIG_FILE").$(yq -r ".name" "$STUFF_CONFIG_FILE")"
+    ytt -f "$STUFF_BASE_DIR/convert-typedefs.ytt.yaml" --data-values-file "$STUFF_REPO_DIR/typedefs.jtd.yaml" --data-value namespace="$NAMESPACE" \
+        | yq -o=json - \
+        | jtd-codegen - --root-name root "$@"
+    popd >/dev/null
+    exit 0
+    ;;
   validate|test)
     CMD=$(yq -r ".$COMMAND" "$STUFF_CONFIG_FILE")
     echo "Running: $CMD"
@@ -185,7 +199,7 @@ case "$COMMAND" in
     eval "$CMD"
     ;;
   *)
-    echo "Usage: stuff {validate|test|refresh|discard|load-all|morph|view}" >&2
+    echo "Usage: stuff {generate-typedefs|validate|test|refresh|discard|load-all|morph|view}" >&2
     exit 1
     ;;
 esac

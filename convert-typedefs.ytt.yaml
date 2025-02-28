@@ -1,0 +1,78 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:template", "template")
+
+#@yaml/text-templated-strings
+---
+#@ def transform_refs_in_struct(value):
+#@ for key in dir(value):
+#@ if key == "ref":
+(@= key @): #@ value[key] + "Node"
+#@ else:
+(@= key @): #@ transform_refs(value[key])
+#@ end
+#@ end
+#@ end
+
+---
+#@ def transform_refs_in_array(value):
+#@ for entry in value:
+- #@ transform_refs(entry)
+#@ end
+#@ end
+
+---
+#@ def transform_refs(value):
+#@ if type(value) == "struct":
+#@ return transform_refs_in_struct(value)
+#@ elif type(value) == "list":
+#@ return transform_refs_in_array(value)
+#@ else:
+#@ return value
+#@ end
+#@ end
+
+#@yaml/text-templated-strings
+---
+#@ def node(content):
+discriminator: t
+mapping:
+  (@= definition_key @): #@ content
+#@ end
+#@ def raw_node(content):
+properties:
+  t: 
+    enum:
+    - #@ data.values.namespace + "." + definition_key
+  #@ for key in content["properties"]:
+  (@= key @): #@ content["properties"][key]
+  #@ end
+#@ end
+
+#@yaml/text-templated-strings
+---
+#@ for key in dir(data.values):
+#@ if key == "definitions":
+definitions: 
+  #@ for definition_key in dir(data.values.definitions):
+  (@= definition_key @): #@ raw_node(data.values.definitions[definition_key])
+  #@ end
+  node_types:
+    enum:
+    #@ for definition_key in dir(data.values.definitions):
+    - #@ data.values.namespace + "." + definition_key
+    #@ end
+  node:
+    properties:
+      t:
+        ref: node_types
+    additionalProperties: true
+#@ elif key == "properties":
+properties: 
+  t: 
+    enum:
+    - #@ data.values.namespace + "." + "root"
+  _original: #@ template.replace(data.values.properties)
+#@ elif key != "namespace":
+(@= key @): #@ data.values[key]
+#@ end
+#@ end
