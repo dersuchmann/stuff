@@ -44,11 +44,12 @@ TARGET="$3"
 case "$COMMAND" in
   generate-typedefs)
     pushd "$STUFF_REPO_DIR" >/dev/null
-    shift # remove "generate-typedefs" from $@
     NAMESPACE="$(yq -r ".scope" "$STUFF_CONFIG_FILE").$(yq -r ".name" "$STUFF_CONFIG_FILE")"
+    CODEGEN_ARGS_STRING="$(yq -r ".generate-typedefs.args" "$STUFF_CONFIG_FILE")"
+    IFS=' ' read -r -a CODEGEN_ARGS <<< "$CODEGEN_ARGS_STRING"
     ytt -f "$STUFF_BASE_DIR/convert-typedefs.ytt.yaml" --data-values-file "$STUFF_REPO_DIR/typedefs.jtd.yaml" --data-value namespace="$NAMESPACE" \
         | yq -o=json - \
-        | jtd-codegen - --root-name root "$@"
+        | jtd-codegen - --root-name root "${CODEGEN_ARGS[@]}"
     popd >/dev/null
     exit 0
     ;;
