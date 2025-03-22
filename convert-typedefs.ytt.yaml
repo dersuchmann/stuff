@@ -45,6 +45,10 @@ properties:
     - #@ data.values.namespace + "." + definition_key
   #@ for key in content["properties"]:
   (@= key @): #@ content["properties"][key]
+  #@ if key == "i":
+  h:
+    type: string
+  #@ end
   #@ end
 #@ end
 
@@ -54,12 +58,18 @@ properties:
 #@ if key == "definitions":
 definitions: 
   #@ for definition_key in dir(data.values.definitions):
+  #@ if not definition_key.endswith("I"):
   (@= definition_key @): #@ raw_node(data.values.definitions[definition_key])
+  #@ else:
+  (@= definition_key @): #@ data.values.definitions[definition_key]
+  #@ end
   #@ end
   node_types:
     enum:
     #@ for definition_key in dir(data.values.definitions):
+    #@ if not definition_key.endswith("I"):
     - #@ data.values.namespace + "." + definition_key
+    #@ end
     #@ end
   node:
     properties:
