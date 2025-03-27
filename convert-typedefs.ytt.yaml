@@ -39,6 +39,10 @@ mapping:
   (@= definition_key @): #@ content
 #@ end
 #@ def raw_node(content):
+#@ if "discriminator" in content:
+discriminator: #@ content["discriminator"]
+mapping: #@ content["mapping"]
+#@ else:
 properties:
   t: 
     enum:
@@ -50,6 +54,7 @@ properties:
     type: string
   #@ end
   #@ end
+#@ end
 #@ end
 
 #@yaml/text-templated-strings
